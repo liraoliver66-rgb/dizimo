@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block body %}
+<section class="hero">
+<div><h1>Eu faço parte.</h1>
+<p class="slogan">Pertença que se transforma em missão.</p>
+<p class="lead">Aqui a sua paróquia pede os materiais da Campanha do Dízimo 2027 e acompanha o pedido até a retirada. Você escolhe os itens, recebe um protocolo e vê cada etapa: pagamento, gráfica, pronto e retirado.</p>
+<div class="acoes"><a class="btn ouro" href="{{ url_for('pedido') }}">Fazer pedido</a><a class="btn sec" href="{{ url_for('acompanhar') }}">Acompanhar meu pedido</a></div></div>
+<figure><img src="{{ url_for('static',filename='img/material.webp') }}" alt="Material oficial da Campanha Regional do Dízimo 2027: kits Essencial, Missão e Pertença, e Lembranças e Brindes"><figcaption>Material oficial da Campanha Regional do Dízimo 2027</figcaption></figure></section>
+
+<section class="adesao" aria-label="Paróquias que já fizeram pedido">
+<div class="topo"><b>{{ aderiram }} de {{ total_par }}</b><span>paróquias já fizeram parte do pedido de 2027</span></div>
+<div class="decs">{% for nome,lista in grupos %}<div><h3>{{ nome }}</h3><div class="pontos">{% for n,ok in lista %}<span class="pt {{ 'on' if ok }}" title="{{ n }}{{ ' · já pediu' if ok }}"></span>{% endfor %}</div></div>{% endfor %}</div>
+<div class="legenda"><span><i class="on"></i>já fez o pedido</span><span><i></i>ainda não pediu</span></div></section>
+
+{% for k,n,ps in kits %}<section class="kit"><div class="n">{{ loop.index }}</div><div>
+<h2>{{ n }}</h2><p class="sub">{{ ['Comunicação e evangelização','Formação e valorização dos agentes, catequese e acompanhamento das famílias','Gratidão e valorização dos dizimistas'][loop.index0] }}</p>
+<div class="itens">{% for p in ps %}<div><span>{{ p.nome }}{% if p.status=='confirmar' %}<span class="tag">preço a confirmar</span>{% endif %}<small>{{ p.desc }}</small></span><span class="pr">{{ p.preco|brl }}</span></div>{% endfor %}</div></div></section>{% endfor %}
+<p class="mut" style="margin-top:-12px">Itens com preço a confirmar podem mudar na conferência da Coordenação.</p>
+
+<section class="faixa-final"><div><h2>Seu pedido já foi enviado?</h2><p>Digite o protocolo e o WhatsApp para ver a situação, alterar ou cancelar.</p></div><a class="btn" href="{{ url_for('acompanhar') }}">Acompanhar pedido</a></section>
+{% endblock %}

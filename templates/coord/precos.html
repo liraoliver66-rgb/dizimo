@@ -1,0 +1,6 @@
+{% extends "coord/base.html" %}{% block title %}Preços{% endblock %}{% block c %}
+<h1>Catálogo e preços 2027</h1><form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+{% for k,n,ps in kits %}<div class="card tw"><h3>{{ n }}</h3><table><tr><th>Ativo</th><th>Produto</th><th>Preço unit. (R$)</th><th>Situação do preço</th></tr>
+{% for p in ps %}<tr><td><input type="checkbox" name="a_{{ p.id }}" {{ 'checked' if p.ativo }}></td><td>{{ p.nome }}</td><td><input name="p_{{ p.id }}" value="{{ '%.2f'|format(p.preco/100) }}" style="width:110px"></td>
+<td><select name="s_{{ p.id }}"><option value="orcado" {{ 'selected' if p.status=='orcado' }}>Orçado</option><option value="confirmar" {{ 'selected' if p.status=='confirmar' }}>A confirmar</option></select></td></tr>{% endfor %}</table></div>{% endfor %}
+<button class="btn">Salvar catálogo</button></form>{% endblock %}

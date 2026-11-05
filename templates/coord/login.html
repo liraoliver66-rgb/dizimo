@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}Entrar · Coordenação{% endblock %}{% block body %}
+<div class="card login"><img src="{{ url_for('static',filename='img/logo.webp') }}" alt="Dízimo: Eu faço parte"><h2>Área da Coordenação</h2><p class="mut">Entre com o usuário e a senha da equipe.</p>
+<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label for="login">Usuário</label><input id="login" name="login" autocomplete="username" autofocus required>
+<label for="senha">Senha</label><input id="senha" name="senha" type="password" autocomplete="current-password" required>
+<p style="margin-top:20px"><button class="btn" style="width:100%">Entrar</button></p></form></div>{% endblock %}

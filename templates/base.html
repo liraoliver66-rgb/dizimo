@@ -1,0 +1,17 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Portal do Dízimo 2027{% endblock %} · Eu Faço Parte</title>
+<meta name="theme-color" content="#8a1c24">
+<link rel="icon" href="{{ url_for('static',filename='img/simbolo.webp') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head><body>
+<div class="faixa"></div>
+<header class="top"><div class="wrap">
+<a class="brand" href="{{ url_for('home') }}"><img src="{{ url_for('static',filename='img/simbolo.webp') }}" alt=""><span><b>Eu faço parte</b><small>Dízimo 2027 · Região Brasilândia</small></span></a>
+<nav><a href="{{ url_for('home') }}" class="{{ 'on' if request.endpoint=='home' }}">Início</a>
+<a href="{{ url_for('acompanhar') }}" class="{{ 'on' if request.endpoint=='acompanhar' }}">Acompanhar pedido</a>
+<a href="{{ url_for('dashboard') }}">Coordenação</a>
+<a href="{{ url_for('pedido') }}" class="cta">Fazer pedido</a></nav></div></header>
+<main class="wrap">{% for c,m in get_flashed_messages(with_categories=true) %}<div class="flash {{ c }}" role="alert">{{ m }}</div>{% endfor %}
+{% block body %}{% endblock %}</main>
+<footer><b>Dízimo: Eu faço parte</b><br>Pertença que se transforma em missão · Campanha Regional · Região Episcopal Brasilândia · Arquidiocese de São Paulo</footer></body></html>

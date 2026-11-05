@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block body %}
+<nav class="coord-nav noprint" aria-label="Coordenação">
+{% for e,l in [('dashboard','Indicadores'),('pedidos','Pedidos'),('paroquias','Paróquias'),('grafica','Gráfica'),('faltam','Faltam pedir'),('precos','Preços'),('usuarios','Usuários')] %}
+<a class="btn sm {{ '' if request.endpoint==e else 'sec' }}" href="{{ url_for(e) }}">{{ l }}</a>{% endfor %}
+<span class="quem">{{ usuario_atual }} · <a href="{{ url_for('logout') }}">Sair</a></span></nav>
+{% block c %}{% endblock %}{% endblock %}

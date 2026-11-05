@@ -1,0 +1,15 @@
+{% extends "coord/base.html" %}{% block title %}Pedidos{% endblock %}{% block c %}
+<h1>Pedidos</h1>
+<form class="card filtros" method="get"><div><label>Busca</label><input name="q" value="{{ a.get('q','') }}" placeholder="paróquia, protocolo, responsável"></div>
+<div><label>Situação</label><select name="status"><option value="">Todas</option>{% for s in STATUS %}<option {{ 'selected' if a.get('status')==s }}>{{ s }}</option>{% endfor %}</select></div>
+<div><label>Decanato</label><select name="dec"><option value="">Todos</option>{% for k,n in DEC.items() %}<option value="{{ k }}" {{ 'selected' if a.get('dec')==k }}>{{ n }}</option>{% endfor %}</select></div>
+<div><label>Pagamento</label><select name="pag"><option value="">Todos</option>{% for s in PAGAMENTOS %}<option {{ 'selected' if a.get('pag')==s }}>{{ s }}</option>{% endfor %}</select></div>
+<div style="flex:0"><button class="btn">Filtrar</button></div>
+<div style="flex:0"><a class="btn sec" href="{{ url_for('exportar',**a) }}">Excel</a></div></form>
+<form method="post" action="{{ url_for('acao_massa') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="card tw"><div class="noprint" style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span>Selecionados:</span>
+<select name="acao"><option value="">Escolha a ação…</option>{% for s in STATUS %}<option>{{ s }}</option>{% endfor %}<option value="pago">Marcar como pago</option><option value="pendente">Marcar como pendente</option></select><button class="btn sm">Aplicar</button>
+<span class="mut" style="margin-left:auto">{{ lista|length }} pedidos · {{ total|brl }} · {{ npagos }} pagos · recebido {{ recebido|brl }}</span></div>
+<table><tr><th><input type="checkbox" onclick="document.querySelectorAll('.ck').forEach(c=>c.checked=this.checked)"></th><th>Protocolo</th><th>Paróquia</th><th>Responsável</th><th>Situação</th><th>Pagto</th><th class="num">Total</th></tr>
+{% for p in lista %}<tr><td><input class="ck" type="checkbox" name="ids" value="{{ p.id }}"></td><td><a href="{{ url_for('pedido_detalhe',pid=p.id) }}">{{ p.protocolo }}</a></td><td>{{ p.paroquia.nome }}<br><span class="mut">{{ p.paroquia.decanato_nome }}</span></td><td>{{ p.responsavel }}<br><span class="mut">{{ p.whatsapp|zap }}</span></td>
+<td><span class="badge b-{{ STATUS_COR[p.status] }}">{{ p.status }}</span></td><td><span class="badge b-{{ 'green' if p.pagamento=='Pago' else ('amber' if p.pagamento=='Parcial' else 'red') }}">{{ p.pagamento }}</span><br><button class="btn sm sec" style="margin-top:4px" formaction="{{ url_for('alternar_pago',pid=p.id) }}" formnovalidate>{{ 'Desfazer' if p.pagamento=='Pago' else 'Marcar pago' }}</button></td><td class="num">{{ p.total|brl }}</td></tr>{% else %}<tr><td colspan="7" class="mut">Nenhum pedido.</td></tr>{% endfor %}</table></div></form>{% endblock %}

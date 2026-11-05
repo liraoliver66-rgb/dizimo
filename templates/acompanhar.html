@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}Acompanhar pedido{% endblock %}{% block body %}
+<div class="card" style="max-width:480px;margin:24px auto"><h1>Acompanhar pedido</h1>
+<p class="mut">Use o protocolo que você recebeu ao enviar o pedido e o WhatsApp informado nele.</p>
+<form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label for="protocolo">Protocolo</label><input id="protocolo" name="protocolo" placeholder="DZ27-SB01-AB12" required autocapitalize="characters">
+<label for="whatsapp">WhatsApp</label><input id="whatsapp" name="whatsapp" inputmode="tel" placeholder="(11) 90000-0000" required>
+<p style="margin-top:20px"><button class="btn">Ver meu pedido</button></p></form></div>{% endblock %}

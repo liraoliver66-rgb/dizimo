@@ -1,0 +1,5 @@
+{% extends "coord/base.html" %}{% block title %}Faltam pedir{% endblock %}{% block c %}
+<h1>Paróquias sem pedido ({{ lista|length }})</h1>
+<form class="card filtros" method="get"><div><label>Decanato</label><select name="dec"><option value="">Todos</option>{% for k,n in DEC.items() %}<option value="{{ k }}" {{ 'selected' if a.get('dec')==k }}>{{ n }}</option>{% endfor %}</select></div>
+<div style="flex:0"><button class="btn">Filtrar</button></div><div style="flex:0"><a class="btn sec" href="{{ url_for('faltam',dec=a.get('dec',''),xlsx=1) }}">Excel</a></div></form>
+<div class="card tw"><table><tr><th>Decanato</th><th>Paróquia</th><th class="num">Gasto em 2026</th></tr>{% for p in lista %}<tr><td>{{ p.decanato_nome }}</td><td>{{ p.nome }}</td><td class="num">{{ p.gasto26|brl }}</td></tr>{% else %}<tr><td colspan="3">Todas as paróquias já pediram. 🎉</td></tr>{% endfor %}</table></div>{% endblock %}

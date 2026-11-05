@@ -1,0 +1,7 @@
+{% extends "coord/base.html" %}{% block title %}Paróquias{% endblock %}{% block c %}
+<h1>Paróquias</h1><p class="mut">Gasto de 2026 e pedido de 2027 lado a lado. Clique no nome para ver o histórico completo.</p>
+<div class="card tw"><table><tr><th>Decanato</th><th>Paróquia</th><th class="num">Gasto em 2026</th><th>Pedido 2027</th><th class="num">Valor 2027</th><th class="num">Variação</th></tr>
+{% for l in linhas %}<tr><td>{{ l.p.decanato_nome }}</td><td><a href="{{ url_for('paroquia_detalhe',pid=l.p.id) }}">{{ l.p.nome }}</a></td><td class="num">{{ l.p.gasto26|brl }}</td>
+<td>{% if l.peds %}{% for x in l.peds %}<span class="badge b-{{ STATUS_COR[x.status] }}">{{ x.status }}</span> {% endfor %}{% else %}<span class="mut">ainda não pediu</span>{% endif %}</td>
+<td class="num">{{ l.total|brl if l.peds else '—' }}</td>
+<td class="num">{% if l.peds and l.p.gasto26 %}{{ '%+.0f'|format((l.total-l.p.gasto26)*100/l.p.gasto26) }}%{% else %}—{% endif %}</td></tr>{% endfor %}</table></div>{% endblock %}

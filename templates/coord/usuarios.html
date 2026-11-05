@@ -1,0 +1,13 @@
+{% extends "coord/base.html" %}{% block title %}Usuários{% endblock %}{% block c %}
+<h1>Usuários da Coordenação</h1>
+<div class="card tw"><table><tr><th>Nome</th><th>Login</th><th>Situação</th><th>Nova senha</th><th></th></tr>
+{% for u in us %}<tr><td>{{ u.nome }}</td><td>{{ u.login }}</td><td>{{ 'Ativo' if u.ativo else 'Inativo' }}{% if u.trocar_senha %} <span class="tag">senha padrão</span>{% endif %}</td>
+<td><form method="post" style="display:flex;gap:6px"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="senha"><input type="hidden" name="id" value="{{ u.id }}"><input type="password" name="senha" placeholder="mín. 8 caracteres" minlength="8" required><button class="btn sm">Trocar</button></form></td>
+<td><form method="post"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="ativar"><input type="hidden" name="id" value="{{ u.id }}"><button class="btn sm sec">{{ 'Desativar' if u.ativo else 'Reativar' }}</button></form></td></tr>{% endfor %}</table></div>
+<form class="card" method="post"><h3>Novo usuário</h3><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="acao" value="novo">
+<div class="grid g3"><div><label>Nome</label><input name="nome"></div><div><label>Login</label><input name="login" required></div><div><label>Senha</label><input type="password" name="senha" minlength="8" required></div></div>
+<p><button class="btn">Criar</button></p></form><div class="card"><h3>Avisos por e-mail</h3>
+{% if mail_ok %}<p>Ativos. Cada pedido novo, alteração ou cancelamento é avisado para: <b>{{ mail_para|join(', ') }}</b>. A paróquia recebe aviso quando informou e-mail.</p>
+<form method="post" action="{{ url_for('email_teste') }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn sec">Enviar e-mail de teste</button></form>
+{% else %}<p>Ainda não configurados. No Render, em Environment, preencha <code>SMTP_HOST</code>, <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code> e <code>MAIL_TO</code> (e-mail do padre). Veja o README.</p>{% endif %}</div>
+{% endblock %}

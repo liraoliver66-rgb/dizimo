@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% block title %}{{ 'Alterar pedido' if ped else 'Fazer pedido' }}{% endblock %}{% block body %}
+<h1>{{ 'Alterar o pedido ' ~ ped.protocolo if ped else 'Pedido de materiais 2027' }}</h1>
+<ol class="passos"><li><span>Paróquia</span></li><li><span>Itens</span></li><li><span>Revisar e enviar</span></li></ol>
+<form id="f" method="post" novalidate data-modelos='{{ modelos|tojson|forceescape }}' data-hist='{{ hist_json|forceescape }}'>
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="step card">
+<h2>Sua paróquia</h2>
+<label for="paroquia">Paróquia</label><select name="paroquia" id="paroquia" data-rot="a paróquia" {{ 'disabled' if ped }}>
+<option value="">Selecione…</option>{% for d,dn in DEC.items() %}<optgroup label="{{ dn }}">{% for p in pars if p.decanato==d %}<option value="{{ p.id }}" {{ 'selected' if f.get('paroquia')|string==p.id|string }}>{{ p.nome }}</option>{% endfor %}</optgroup>{% endfor %}</select>
+{% if ped %}<input type="hidden" name="paroquia" value="{{ ped.paroquia_id }}">{% endif %}
+<div id="hist" class="aviso hide" style="margin-top:12px"></div>
+<label for="responsavel">Nome do responsável</label><input name="responsavel" id="responsavel" data-rot="o nome do responsável" value="{{ f.get('responsavel','') }}" maxlength="120" autocomplete="name">
+<label for="whatsapp">WhatsApp com DDD</label><input name="whatsapp" id="whatsapp" data-rot="o WhatsApp" inputmode="tel" placeholder="(11) 90000-0000" value="{{ f.get('whatsapp','') }}" maxlength="20" autocomplete="tel">
+<label for="email">E-mail <span class="mut">(opcional, para receber avisos do pedido)</span></label><input name="email" id="email" type="email" value="{{ f.get('email','') }}" autocomplete="email">
+<p style="margin-top:20px"><button type="button" class="btn" data-go="1">Escolher itens</button></p></div>
+
+<div class="step card hide">
+<h2>Itens do pedido</h2>
+<div class="atalhos"><b>Ponto de partida:</b> <button type="button" class="btn sm sec" data-modelo="P">Paróquia pequena</button> <button type="button" class="btn sm sec" data-modelo="M">Média</button> <button type="button" class="btn sm sec" data-modelo="G">Grande</button> <button type="button" class="btn sm sec" data-limpar>Zerar tudo</button><br><span class="mut" style="font-size:.88rem">Preenche folder, folheto, cartaz e marca-página. Depois ajuste como quiser.</span></div>
+{% for k,n,ps in kits %}<h3 style="margin-top:26px">{{ loop.index }}. {{ n }}</h3>{% for p in ps %}<div class="prod"><div><b>{{ p.nome }}</b>{% if p.status=='confirmar' %}<span class="tag">preço a confirmar</span>{% endif %}<small>{{ p.desc }} · {{ p.preco|brl }} cada</small></div>
+<div class="qtd"><button type="button" class="mn" aria-label="Diminuir">−</button><input class="qty" type="number" min="0" step="1" name="q_{{ p.id }}" value="{{ f.get('q_'~p.id,0) }}" data-preco="{{ p.preco }}" data-nome="{{ p.nome }}" data-pid="{{ p.id }}" data-step="{{ p.step }}" aria-label="Quantidade de {{ p.nome }}"><button type="button" class="pl" aria-label="Aumentar">+</button></div></div>{% endfor %}{% endfor %}
+<div class="sticky"><span>Total <b class="tot">R$ 0,00</b></span><span><button type="button" class="btn sec" data-go="0">Voltar</button> <button type="button" class="btn" data-go="2">Revisar pedido</button></span></div></div>
+
+<div class="step card hide"><h2>Revise e envie</h2><div id="resumo" class="tw"></div>
+<label for="obs">Observações <span class="mut">(opcional)</span></label><textarea name="obs" id="obs" maxlength="1000">{{ f.get('obs','') }}</textarea>
+<p class="mut" style="margin-top:12px">A Coordenação confere o valor final. O pagamento é combinado depois, pelo protocolo.</p>
+<p><button type="button" class="btn sec" data-go="1">Voltar aos itens</button> <button class="btn ouro">{{ 'Salvar alterações' if ped else 'Enviar pedido' }}</button></p></div>
+</form><script src="{{ url_for('static',filename='pedido.js') }}"></script>
+{% endblock %}

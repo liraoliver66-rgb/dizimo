@@ -1,0 +1,9 @@
+{% extends "coord/base.html" %}{% block title %}{{ par.nome }}{% endblock %}{% block c %}
+<h1>{{ par.nome }}</h1><p class="mut">{{ par.decanato_nome }}</p>
+<div class="grid g2"><div class="card tw"><h3>O que pediu em 2026</h3><table><tr><th>Item</th><th class="num">Qtd</th><th class="num">Preço</th><th class="num">Valor</th></tr>
+{% for l,q,pr,v in historico %}<tr><td>{{ l }}</td><td class="num">{{ q|milhar }}</td><td class="num">{{ pr|brl }}</td><td class="num">{{ v|brl }}</td></tr>{% endfor %}
+<tr><th colspan="3">Total gasto na planilha de 2026</th><th class="num">{{ par.gasto26|brl }}</th></tr></table></div>
+<div class="card tw"><h3>Pedidos de 2027</h3>{% if peds %}<table><tr><th>Protocolo</th><th>Situação</th><th class="num">Total</th></tr>
+{% for x in peds %}<tr><td><a href="{{ url_for('pedido_detalhe',pid=x.id) }}">{{ x.protocolo }}</a><br><span class="mut">{{ x.criado|dt }}</span></td><td><span class="badge b-{{ STATUS_COR[x.status] }}">{{ x.status }}</span><br><span class="mut">{{ x.pagamento }}</span></td><td class="num">{{ x.total|brl }}</td></tr>{% endfor %}</table>
+{% else %}<p class="mut">Esta paróquia ainda não fez pedido para 2027.</p>{% endif %}</div></div>
+<a href="{{ url_for('paroquias') }}">← voltar às paróquias</a>{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% block title %}Pedido {{ p.protocolo }}{% endblock %}{% block body %}
+<div class="card">
+    <p class="mut" style="margin:0">Protocolo do pedido</p>
+    <div class="proto">{{ p.protocolo }}</div>
+    <p style="margin:12px 0"><span class="badge b-{{ STATUS_COR[p.status] }}">{{ p.status }}</span> <span
+            class="badge">Pagamento: {{ p.pagamento }}</span></p>
+    <p style="margin:0"><b>{{ p.paroquia.nome }}</b> · {{ p.paroquia.decanato_nome }}<br>{{ p.responsavel }} · {{
+        p.whatsapp|zap }}{% if p.email %} · {{ p.email }}{% endif %}<br><span class="mut">Enviado em {{ p.criado|dt
+            }}</span></p>
+    <div class="tl">{% for lbl,ok in [('Pagamento',p.pagamento=='Pago'),('Na gráfica',p.grafica_em),('Pronto para
+        retirar',p.pronto_em),('Retirado',p.retirado_em)] %}<div class="st {{ 'on' if ok }}">{{ '✓ ' if ok }}{{ lbl }}
+        </div>{% endfor %}</div>
+</div>
+<div class="card tw">
+    <table>
+        <tr>
+            <th>Item</th>
+            <th class="num">Qtd</th>
+            <th class="num">Unitário</th>
+            <th class="num">Subtotal</th>
+        </tr>
+        {% for i in p.itens %}<tr>
+            <td>{{ i.nome }}</td>
+            <td class="num">{{ i.qtd }}</td>
+            <td class="num">{{ i.preco|brl }}</td>
+            <td class="num">{{ (i.qtd*i.preco)|brl }}</td>
+        </tr>{% endfor %}
+        <tr>
+            <th colspan="3">Total</th>
+            <th class="num">{{ p.total|brl }}</th>
+        </tr>
+        {% if p.pago %}<tr>
+            <td colspan="3">Já pago</td>
+            <td class="num">{{ p.pago|brl }}</td>
+        </tr>
+        <tr>
+            <td colspan="3">Falta pagar</td>
+            <td class="num">{{ p.saldo|brl }}</td>
+        </tr>{% endif %}
+    </table>
+</div>
+{% if p.obs %}<div class="card"><b>Observações:</b> {{ p.obs }}</div>{% endif %}
+<div class="noprint" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="mut"
+        style="flex-basis:100%">Anote ou imprima o protocolo: é ele que dá acesso ao pedido.</span>
+    <a class="btn ouro" target="_blank" rel="noopener"
+        href="{{ wa_link(p.whatsapp, 'Pedido do Dízimo 2027 - ' ~ p.paroquia.nome ~ '. Protocolo: ' ~ p.protocolo ~ '. Total: ' ~ (p.total|brl) ~ '. Para acompanhar, use o protocolo e este WhatsApp em ' ~ request.host_url ~ 'acompanhar') }}">Enviar
+        protocolo para o meu WhatsApp</a>
+    <button class="btn sec" onclick="print()">Imprimir comprovante</button>
+    {% if p.editavel %}<a class="btn" href="{{ url_for('editar',prot=p.protocolo) }}">Alterar pedido</a>
+    <form method="post" action="{{ url_for('cancelar',prot=p.protocolo) }}"
+        onsubmit="return confirm('Cancelar este pedido?')"><input type="hidden" name="csrf" value="{{ csrf }}"><button
+            class="btn red">Cancelar pedido</button></form>{% endif %}
+</div>
+{% endblock %}

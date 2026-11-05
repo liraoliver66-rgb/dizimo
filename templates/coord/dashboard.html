@@ -1,0 +1,23 @@
+{% extends "coord/base.html" %}{% block title %}Indicadores{% endblock %}{% block c %}
+{% if sem_senha %}<div class="flash erro">Você ainda usa a senha padrão. <a href="{{ url_for('usuarios') }}">Troque agora</a>.</div>{% endif %}
+<h1>Indicadores da Campanha 2027</h1>
+<div class="grid g4">
+<div class="kpi"><b>{{ n }}</b><span>pedidos enviados</span></div>
+<div class="kpi"><b>{{ adesao }}/{{ npar }}</b><span>paróquias com pedido ({{ (adesao*100//npar) if npar else 0 }}%)</span></div>
+<div class="kpi"><b>{{ total|brl }}</b><span>valor total pedido</span></div>
+<div class="kpi"><b>{{ pago|brl }}</b><span>recebido · falta {{ receber|brl }}</span></div></div>
+<div class="card" style="margin-top:18px"><h3>Recebimento</h3><div class="bar ok"><i style="width:{{ (pago*100//total) if total else 0 }}%"></i></div>
+<span class="mut">{{ (pago*100//total) if total else 0 }}% do valor pedido já foi pago · em 2026 foram gastos {{ gasto26|brl }}</span></div>
+<div class="grid g2">
+<div class="card"><h3>Pedidos por situação</h3>{% for s,q in por_status.items() %}<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><span style="width:170px">{{ s }}</span><div class="bar" style="flex:1"><i style="width:{{ (q*100//n) if n else 0 }}%"></i></div><b>{{ q }}</b></div>{% endfor %}</div>
+<div class="card"><h3>Andamento da entrega</h3>
+{% for l,v in [('Pagos',etapas.pagto),('Na gráfica',etapas.grafica),('Prontos',etapas.pronto),('Retirados',etapas.retirado)] %}<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><span style="width:100px">{{ l }}</span><div class="bar ouro" style="flex:1"><i style="width:{{ (v*100//n) if n else 0 }}%"></i></div><b>{{ v }}</b></div>{% endfor %}</div></div>
+<div class="card tw"><h3>Por decanato</h3><table><tr><th>Decanato</th><th class="num">Paróquias com pedido</th><th>Adesão</th><th class="num">Pedidos</th><th class="num">Valor</th><th class="num">Pago</th></tr>
+{% for k,d in dec.items() %}<tr><td>{{ d.nome }}</td><td class="num">{{ d.com }}/{{ d.par }}</td><td style="min-width:120px"><div class="bar"><i style="width:{{ (d.com*100//d.par) if d.par else 0 }}%"></i></div></td><td class="num">{{ d.pedidos }}</td><td class="num">{{ d.valor|brl }}</td><td class="num">{{ d.pago|brl }}</td></tr>{% endfor %}</table></div>
+<div class="grid g2">
+<div class="card tw"><h3>Mais pedidos (valor)</h3><table>{% for t in top %}<tr><td>{{ t.nome }}</td><td class="num">{{ t.qtd|milhar }}</td><td class="num">{{ t.valor|brl }}</td></tr>{% else %}<tr><td class="mut">Sem pedidos ainda.</td></tr>{% endfor %}</table></div>
+<div class="card tw"><h3>2026 × 2027 (quantidade)</h3><table><tr><th></th><th class="num">2026</th><th class="num">2027</th></tr>
+{% for k,l in [('folder','Folder'),('folheto','Folheto'),('cartaz','Cartaz')] %}<tr><td>{{ l }}</td><td class="num">{{ c26[k]|milhar }}</td><td class="num">{{ c27[k]|milhar }}</td></tr>{% endfor %}</table>
+<p class="mut">Compara só o que existe nos dois anos. O banner não está no catálogo 2027.</p></div></div>
+<div class="card tw"><h3>Últimos pedidos</h3><table>{% for p in recentes %}<tr><td><a href="{{ url_for('pedido_detalhe',pid=p.id) }}">{{ p.protocolo }}</a></td><td>{{ p.paroquia.nome }}</td><td><span class="badge b-{{ STATUS_COR[p.status] }}">{{ p.status }}</span></td><td class="num">{{ p.total|brl }}</td></tr>{% endfor %}</table></div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "coord/base.html" %}{% block title %}{{ p.protocolo }}{% endblock %}{% block c %}
+<h1>{{ p.protocolo }} <span class="badge b-{{ STATUS_COR[p.status] }}">{{ p.status }}</span></h1>
+<div class="grid g2"><div class="card"><b>{{ p.paroquia.nome }}</b> · {{ p.paroquia.decanato_nome }}<br>{{ p.responsavel }}<br>
+<a href="https://wa.me/55{{ p.whatsapp }}" target="_blank" rel="noopener">{{ p.whatsapp|zap }}</a>{% if p.email %} · {{ p.email }}{% endif %}<br><span class="mut">Criado {{ p.criado|dt }} · atualizado {{ p.atualizado|dt }}</span>
+{% if p.obs %}<p><b>Obs. da paróquia:</b> {{ p.obs }}</p>{% endif %}
+<div class="tl" style="margin-top:10px">{% for lbl,ok in [('Pagamento',p.pagamento=='Pago'),('Gráfica '~(p.grafica_em|dt if p.grafica_em else ''),p.grafica_em),('Pronto',p.pronto_em),('Retirado',p.retirado_em)] %}<div class="st {{ 'on' if ok }}">{{ lbl }}</div>{% endfor %}</div></div>
+<form class="card" method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+<label>Situação</label><select name="status">{% for s in STATUS %}<option {{ 'selected' if s==p.status }}>{{ s }}</option>{% endfor %}</select>
+<label>Pagamento</label><select name="pagamento">{% for s in PAGAMENTOS %}<option {{ 'selected' if s==p.pagamento }}>{{ s }}</option>{% endfor %}</select>
+<label>Valor recebido (R$)</label><input name="pago" value="{{ '%.2f'|format((p.pago or 0)/100) }}">
+<label>Anotações da Coordenação</label><textarea name="obs_coord">{{ p.obs_coord }}</textarea>
+<p><button class="btn">Salvar</button></p></form></div>
+<div class="card tw"><table><tr><th>Item</th><th class="num">Qtd</th><th class="num">Unit.</th><th class="num">Subtotal</th></tr>
+{% for i in p.itens %}<tr><td>{{ i.nome }}</td><td class="num">{{ i.qtd }}</td><td class="num">{{ i.preco|brl }}</td><td class="num">{{ (i.qtd*i.preco)|brl }}</td></tr>{% endfor %}
+<tr><th colspan="3">Total</th><th class="num">{{ p.total|brl }}</th></tr><tr><td colspan="3">Saldo a receber</td><td class="num">{{ p.saldo|brl }}</td></tr></table></div>
+<a class="btn sec" href="{{ url_for('editar',prot=p.protocolo) }}">Editar itens</a> <a href="{{ url_for('pedidos') }}">← voltar</a>{% endblock %}

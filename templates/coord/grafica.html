@@ -1,0 +1,6 @@
+{% extends "coord/base.html" %}{% block title %}Gráfica{% endblock %}{% block c %}
+<h1>Consolidado para a gráfica</h1>
+<form class="card filtros" method="get"><div><label>Considerar pedidos</label><select name="status"><option value="">Todos de “Confirmado” em diante (exceto entregues)</option>{% for s in opcoes %}<option {{ 'selected' if sel==s }}>{{ s }}</option>{% endfor %}</select></div>
+<div style="flex:0"><button class="btn">Ver</button></div><div style="flex:0"><a class="btn sec" href="{{ url_for('grafica',status=sel or '',xlsx=1) }}">Excel</a></div></form>
+<div class="card tw"><p>{{ peds|length }} pedidos · <b>{{ total|brl }}</b></p><table><tr><th>Produto</th><th class="num">Quantidade</th><th class="num">Valor</th><th>Paróquias</th></tr>
+{% for pid,d in ag %}<tr><td>{{ d.nome }}</td><td class="num"><b>{{ d.qtd|milhar }}</b></td><td class="num">{{ d.valor|brl }}</td><td class="mut">{{ d.pars|length }}: {% for n,q in d.pars %}{{ n }} ({{ q }}){{ ', ' if not loop.last }}{% endfor %}</td></tr>{% else %}<tr><td colspan="4" class="mut">Nenhum pedido nesse status.</td></tr>{% endfor %}</table></div>{% endblock %}
