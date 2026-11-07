@@ -1,15 +1,160 @@
-{% extends "coord/base.html" %}{% block title %}Pedidos{% endblock %}{% block c %}
-<h1>Pedidos</h1>
-<form class="card filtros" method="get"><div><label>Busca</label><input name="q" value="{{ a.get('q','') }}" placeholder="paróquia, protocolo, responsável"></div>
-<div><label>Situação</label><select name="status"><option value="">Todas</option>{% for s in STATUS %}<option {{ 'selected' if a.get('status')==s }}>{{ s }}</option>{% endfor %}</select></div>
-<div><label>Decanato</label><select name="dec"><option value="">Todos</option>{% for k,n in DEC.items() %}<option value="{{ k }}" {{ 'selected' if a.get('dec')==k }}>{{ n }}</option>{% endfor %}</select></div>
-<div><label>Pagamento</label><select name="pag"><option value="">Todos</option>{% for s in PAGAMENTOS %}<option {{ 'selected' if a.get('pag')==s }}>{{ s }}</option>{% endfor %}</select></div>
-<div style="flex:0"><button class="btn">Filtrar</button></div>
-<div style="flex:0"><a class="btn sec" href="{{ url_for('exportar',**a) }}">Excel</a></div></form>
-<form method="post" action="{{ url_for('acao_massa') }}"><input type="hidden" name="csrf" value="{{ csrf }}">
-<div class="card tw"><div class="noprint" style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span>Selecionados:</span>
-<select name="acao"><option value="">Escolha a ação…</option>{% for s in STATUS %}<option>{{ s }}</option>{% endfor %}<option value="pago">Marcar como pago</option><option value="pendente">Marcar como pendente</option></select><button class="btn sm">Aplicar</button>
-<span class="mut" style="margin-left:auto">{{ lista|length }} pedidos · {{ total|brl }} · {{ npagos }} pagos · recebido {{ recebido|brl }}</span></div>
-<table><tr><th><input type="checkbox" onclick="document.querySelectorAll('.ck').forEach(c=>c.checked=this.checked)"></th><th>Protocolo</th><th>Paróquia</th><th>Responsável</th><th>Situação</th><th>Pagto</th><th class="num">Total</th></tr>
-{% for p in lista %}<tr><td><input class="ck" type="checkbox" name="ids" value="{{ p.id }}"></td><td><a href="{{ url_for('pedido_detalhe',pid=p.id) }}">{{ p.protocolo }}</a></td><td>{{ p.paroquia.nome }}<br><span class="mut">{{ p.paroquia.decanato_nome }}</span></td><td>{{ p.responsavel }}<br><span class="mut">{{ p.whatsapp|zap }}</span></td>
-<td><span class="badge b-{{ STATUS_COR[p.status] }}">{{ p.status }}</span></td><td><span class="badge b-{{ 'green' if p.pagamento=='Pago' else ('amber' if p.pagamento=='Parcial' else 'red') }}">{{ p.pagamento }}</span><br><button class="btn sm sec" style="margin-top:4px" formaction="{{ url_for('alternar_pago',pid=p.id) }}" formnovalidate>{{ 'Desfazer' if p.pagamento=='Pago' else 'Marcar pago' }}</button></td><td class="num">{{ p.total|brl }}</td></tr>{% else %}<tr><td colspan="7" class="mut">Nenhum pedido.</td></tr>{% endfor %}</table></div></form>{% endblock %}
+{% extends "base.html" %}{% block title %}{{ 'Editar pedido' if ped else 'Fazer pedido' }}{% endblock %}{% block body %}
+<h1>{{ 'Editar pedido ' ~ ped.protocolo if ped else 'Fazer pedido' }}</h1>
+<p class="mut">Escolha a paróquia, informe o responsável e marque as quantidades. O total é calculado automaticamente.</p>
+
+<form method="post" id="form-pedido" autocomplete="off">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <div class="card">
+    <h2>Dados da paróquia</h2>
+    <div>
+      <label for="paroquia">Paróquia</label>
+      {% if ped %}
+        <select id="paroquia" disabled><option>{{ ped.paroquia.nome }}</option></select>
+      {% else %}
+      <select name="paroquia" id="paroquia" required>
+        <option value="">Escolha a paróquia…</option>
+        {% set ns = namespace(dec=None) %}
+        {% for p in pars %}
+          {% if ns.dec != p.decanato %}
+            {% if ns.dec is not none %}</optgroup>{% endif %}
+            <optgroup label="{{ p.decanato_nome }}">
+            {% set ns.dec = p.decanato %}
+          {% endif %}
+          <option value="{{ p.id }}" {{ 'selected' if (f.get('paroquia')|string) == (p.id|string) }}>{{ p.nome }}</option>
+        {% endfor %}
+        {% if ns.dec is not none %}</optgroup>{% endif %}
+      </select>
+      {% endif %}
+      <div id="hist" class="mut" style="margin-top:6px"></div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
+      <div style="flex:1;min-width:220px">
+        <label for="responsavel">Responsável</label>
+        <input name="responsavel" id="responsavel" value="{{ f.get('responsavel','') }}" required minlength="3" placeholder="Nome de quem faz o pedido">
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label for="whatsapp">WhatsApp (com DDD)</label>
+        <input name="whatsapp" id="whatsapp" value="{{ f.get('whatsapp','') }}" required inputmode="tel" placeholder="(11) 90000-0000">
+      </div>
+      <div style="flex:1;min-width:220px">
+        <label for="email">E-mail (opcional)</label>
+        <input name="email" id="email" type="email" value="{{ f.get('email','') }}" placeholder="para receber os avisos do pedido">
+      </div>
+    </div>
+  </div>
+
+  {% if modelos %}
+  <div class="card">
+    <h2>Atalho: escolha um tamanho de pedido</h2>
+    <p class="mut">Preenche as quantidades do Kit Essencial. Você pode ajustar tudo depois.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% for k, m in modelos.items() %}
+      <button type="button" class="btn sec modelo" data-modelo="{{ k }}">{{ m.nome }}</button>
+      {% endfor %}
+      <button type="button" class="btn sec" id="limpar">Limpar quantidades</button>
+    </div>
+  </div>
+  {% endif %}
+
+  {% for k, nome, prods in kits %}
+  <div class="card">
+    <h2>{{ nome }}</h2>
+    <table>
+      <tr><th>Item</th><th class="num">Preço</th><th class="num" style="width:130px">Quantidade</th></tr>
+      {% for p in prods %}
+      <tr>
+        <td>{{ p.nome }}{% if p.desc %}<br><span class="mut">{{ p.desc }}</span>{% endif %}</td>
+        <td class="num">{{ p.preco|brl }}{% if p.status == 'confirmar' %}<br><span class="mut">preço a confirmar</span>{% endif %}</td>
+        <td class="num">
+          <input class="qtd" type="number" min="0" max="100000" step="{{ p.step or 1 }}"
+                 name="q_{{ p.id }}" value="{{ f.get('q_' ~ p.id, 0) or 0 }}"
+                 data-preco="{{ p.preco }}" style="width:100px;text-align:right">
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="mut">Nenhum item disponível neste kit.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endfor %}
+
+  <div class="card">
+    <label for="obs">Observações (opcional)</label>
+    <textarea name="obs" id="obs" rows="3" maxlength="1000" placeholder="Alguma informação para a Coordenação?">{{ f.get('obs','') }}</textarea>
+  </div>
+
+  <div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div><span class="mut">Total do pedido</span><br><strong id="total" style="font-size:1.6em">R$ 0,00</strong></div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      {% if ped %}<a class="btn sec" href="{{ url_for('comprovante', prot=ped.protocolo) }}">Voltar</a>{% endif %}
+      <button class="btn" type="submit">{{ 'Salvar alterações' if ped else 'Enviar pedido' }}</button>
+    </div>
+  </div>
+</form>
+
+{% if ped and ped.editavel %}
+<form method="post" action="{{ url_for('cancelar', prot=ped.protocolo) }}" onsubmit="return confirm('Cancelar este pedido?')">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button class="btn sec" type="submit">Cancelar pedido</button>
+</form>
+{% endif %}
+
+<script>
+(function () {
+  var HIST = {{ hist_json|safe }};
+  var ROTULOS = {folder:"Folder", banner:"Banner", mp:"Marca-página", f1:"Folheto 1",
+                 f2:"Folheto 2", cp:"Cartaz pequeno", cg:"Cartaz grande"};
+
+  function brl(c) {
+    return "R$ " + (c / 100).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  }
+
+  function total() {
+    var t = 0;
+    document.querySelectorAll(".qtd").forEach(function (i) {
+      var q = parseInt(i.value, 10) || 0;
+      if (q > 0) t += q * parseInt(i.dataset.preco, 10);
+    });
+    document.getElementById("total").textContent = brl(t);
+  }
+
+  function historico() {
+    var sel = document.getElementById("paroquia");
+    var box = document.getElementById("hist");
+    var id = sel && sel.value;
+    var h = id && HIST[id];
+    if (!h) { box.textContent = ""; return; }
+    var partes = [];
+    Object.keys(ROTULOS).forEach(function (k) {
+      if (h[k]) partes.push(h[k].toLocaleString("pt-BR") + " " + ROTULOS[k].toLowerCase());
+    });
+    box.textContent = partes.length ? "Em 2026 esta paróquia pediu: " + partes.join(", ") + "." : "";
+  }
+
+  var MODELOS = {{ modelos|tojson }};
+  document.querySelectorAll(".modelo").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var q = (MODELOS[b.dataset.modelo] || {}).q || {};
+      Object.keys(q).forEach(function (pid) {
+        var campo = document.querySelector('[name="q_' + pid + '"]');
+        if (campo) campo.value = q[pid];
+      });
+      total();
+    });
+  });
+  var limpar = document.getElementById("limpar");
+  if (limpar) limpar.addEventListener("click", function () {
+    document.querySelectorAll(".qtd").forEach(function (i) { i.value = 0; });
+    total();
+  });
+
+  document.querySelectorAll(".qtd").forEach(function (i) { i.addEventListener("input", total); });
+  var sel = document.getElementById("paroquia");
+  if (sel) sel.addEventListener("change", historico);
+  total();
+  historico();
+})();
+</script>
+{% endblock %}
