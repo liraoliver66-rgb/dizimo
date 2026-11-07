@@ -1,6 +1,7 @@
 """Portal do Dízimo 2027 – Campanha Regional "Eu Faço Parte" (Região Episcopal Brasilândia).
 Aplicação Flask única: portal público + pedido de materiais + acompanhamento + área da Coordenação."""
 import os, re, io, csv, json, time, secrets, string, smtplib, threading
+import urllib.request, urllib.error
 from urllib.parse import quote
 from email.message import EmailMessage
 from datetime import datetime, timedelta
@@ -158,8 +159,10 @@ app.jinja_env.globals["wa_link"] = wa_link
 
 @app.context_processor
 def ctx():
+    # 'a' = parâmetros da URL; fica sempre definido para qualquer template.
+    # Quando a rota passa a=... explicitamente (ex.: lista de pedidos), o valor da rota prevalece.
     return dict(STATUS=STATUS, STATUS_COR=STATUS_COR, PAGAMENTOS=PAGAMENTOS, DEC=sd.DECANATOS,
-                csrf=csrf_token(), usuario_atual=session.get("nome"))
+                csrf=csrf_token(), usuario_atual=session.get("nome"), a=request.args)
 
 
 def csrf_token():
@@ -214,14 +217,44 @@ def mail_config():
     return dict(host=os.environ.get("SMTP_HOST", ""), port=int(os.environ.get("SMTP_PORT", "587") or 587),
                 user=os.environ.get("SMTP_USER", ""), senha=os.environ.get("SMTP_PASSWORD", ""),
                 de=os.environ.get("MAIL_FROM") or os.environ.get("SMTP_USER", ""),
+                api=os.environ.get("BREVO_API_KEY", "").strip(),
                 para=[e.strip() for e in os.environ.get("MAIL_TO", "").split(",") if e.strip()])
+
+
+def email_ativo():
+    c = mail_config()
+    return bool((c["host"] or c["api"]) and c["para"])
+
+
+def _brevo_enviar(c, dest, assunto, corpo):
+    """Envio por API HTTPS (funciona no plano gratuito do Render, que bloqueia SMTP)."""
+    if not c["de"]:
+        return "Falta MAIL_FROM (o e-mail remetente validado no Brevo)."
+    dados = json.dumps({"sender": {"name": "Dízimo 2027", "email": c["de"]},
+                        "to": [{"email": e} for e in dest],
+                        "subject": assunto, "textContent": corpo}).encode("utf-8")
+    req = urllib.request.Request("https://api.brevo.com/v3/smtp/email", data=dados, method="POST",
+                                 headers={"api-key": c["api"], "content-type": "application/json",
+                                          "accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15):
+            return None
+    except urllib.error.HTTPError as e:
+        detalhe = e.read().decode("utf-8", "ignore")[:300]
+        app.logger.warning("Brevo recusou o e-mail (%s): %s", e.code, detalhe)
+        return f"Brevo recusou ({e.code}): {detalhe}"
+    except Exception as e:
+        app.logger.warning("Falha ao enviar e-mail pelo Brevo: %s", e)
+        return str(e)
 
 
 def _smtp_enviar(dest, assunto, corpo):
     """Envia agora; devolve None se deu certo ou o texto do erro."""
     c = mail_config()
-    if not c["host"] or not dest:
-        return "E-mail não configurado (faltam SMTP_HOST e MAIL_TO)."
+    if not dest or not (c["host"] or c["api"]):
+        return "E-mail não configurado (faltam BREVO_API_KEY ou SMTP_HOST, e MAIL_TO)."
+    if c["api"]:
+        return _brevo_enviar(c, dest, assunto, corpo)
     try:
         msg = EmailMessage()
         msg["Subject"], msg["From"], msg["To"] = assunto, c["de"], ", ".join(dest)
@@ -242,7 +275,8 @@ def _smtp_enviar(dest, assunto, corpo):
 
 
 def enviar_email(dest, assunto, corpo):
-    if mail_config()["host"] and dest:
+    c = mail_config()
+    if (c["host"] or c["api"]) and dest:
         threading.Thread(target=_smtp_enviar, args=(dest, assunto, corpo), daemon=True).start()
 
 
@@ -316,7 +350,7 @@ def pedido():
         if em and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", em): erros.append("O e-mail parece incompleto. Corrija ou deixe em branco.")
         if erros:
             for e in erros: flash(e, "erro")
-            return render_template("pedido_form.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS,
+            return render_template("pedido.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS,
                                    f=request.form, ped=None, hist_json=hist_json(pars)), 400
         p = Pedido(protocolo=gerar_protocolo(par), paroquia=par, responsavel=resp, whatsapp=zap,
                    email=request.form.get("email", "").strip()[:120], obs=request.form.get("obs", "")[:1000],
@@ -327,7 +361,7 @@ def pedido():
         session["meus"] = session["meus"] + [p.protocolo]
         avisar(p, "Novo pedido recebido", paroquia=True)
         return redirect(url_for("comprovante", prot=p.protocolo))
-    return render_template("pedido_form.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS, f={}, ped=None, hist_json=hist_json(pars))
+    return render_template("pedido.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS, f={}, ped=None, hist_json=hist_json(pars))
 
 
 def pedido_do_dono(prot):
@@ -362,7 +396,7 @@ def editar(prot):
             return redirect(url_for("comprovante", prot=p.protocolo))
     f = {"paroquia": p.paroquia_id, "responsavel": p.responsavel, "whatsapp": p.whatsapp,
          "email": p.email, "obs": p.obs, **{f"q_{i.produto_id}": i.qtd for i in p.itens}}
-    return render_template("pedido_form.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS, f=f, ped=p, hist_json=hist_json(pars))
+    return render_template("pedido.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS, f=f, ped=p, hist_json=hist_json(pars))
 
 
 @app.route("/pedido/<prot>/cancelar", methods=["POST"])
@@ -516,15 +550,24 @@ def pedidos():
 def acao_massa():
     ids = [int(i) for i in request.form.getlist("ids") if i.isdigit()]
     acao = request.form.get("acao", "")
-    ps = Pedido.query.filter(Pedido.id.in_(ids)).all() if ids else []
+    if not acao:
+        flash("Escolha uma ação antes de aplicar.", "erro")
+        return redirect(request.referrer or url_for("pedidos"))
+    if not ids:
+        flash("Selecione ao menos um pedido.", "erro")
+        return redirect(request.referrer or url_for("pedidos"))
+    ps = Pedido.query.filter(Pedido.id.in_(ids)).all()
+    mudaram = []
     for p in ps:
+        antes = (p.status, p.pagamento)
         if acao in STATUS: aplicar_status(p, acao)
         elif acao == "pago": p.pagamento, p.pago = "Pago", p.total
         elif acao == "pendente": p.pagamento, p.pago = "Pendente", 0
+        if (p.status, p.pagamento) != antes:
+            mudaram.append(p)
     db.session.commit()
-    if acao:
-        for p in ps:
-            if p.email: avisar_paroquia(p)
+    for p in mudaram:          # só avisa a paróquia quando algo realmente mudou
+        if p.email: avisar_paroquia(p)
     flash(f"{len(ps)} pedido(s) atualizado(s).", "ok")
     return redirect(request.referrer or url_for("pedidos"))
 
@@ -701,7 +744,7 @@ def usuarios():
         return redirect(url_for("usuarios"))
     c = mail_config()
     return render_template("coord/usuarios.html", us=Usuario.query.order_by(Usuario.id).all(),
-                           mail_ok=bool(c["host"] and c["para"]), mail_para=c["para"])
+                           mail_ok=email_ativo(), mail_para=c["para"])
 
 
 @app.route("/coord/email-teste", methods=["POST"])
