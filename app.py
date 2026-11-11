@@ -332,6 +332,15 @@ def home():
     return render_template("home.html", kits=catalogo(), aderiram=len(feitos), total_par=len(pars), grupos=grupos)
 
 
+def ultimo_pedido_meu():
+    """Último pedido (não cancelado) feito ou acompanhado neste navegador."""
+    prots = session.get("meus", [])
+    if not prots:
+        return None
+    return (Pedido.query.filter(Pedido.protocolo.in_(prots), Pedido.status != "Cancelado")
+            .order_by(Pedido.criado.desc()).first())
+
+
 @app.route("/pedido", methods=["GET", "POST"])
 def pedido():
     pars = Paroquia.query.order_by(Paroquia.decanato, Paroquia.numero).all()
@@ -351,7 +360,8 @@ def pedido():
         if erros:
             for e in erros: flash(e, "erro")
             return render_template("pedido.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS,
-                                   f=request.form, ped=None, hist_json=hist_json(pars)), 400
+                                   f=request.form, ped=None, ultimo=ultimo_pedido_meu(),
+                                   hist_json=hist_json(pars)), 400
         p = Pedido(protocolo=gerar_protocolo(par), paroquia=par, responsavel=resp, whatsapp=zap,
                    email=request.form.get("email", "").strip()[:120], obs=request.form.get("obs", "")[:1000],
                    itens=itens)
@@ -361,7 +371,15 @@ def pedido():
         session["meus"] = session["meus"] + [p.protocolo]
         avisar(p, "Novo pedido recebido", paroquia=True)
         return redirect(url_for("comprovante", prot=p.protocolo))
-    return render_template("pedido.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS, f={}, ped=None, hist_json=hist_json(pars))
+    ultimo = ultimo_pedido_meu()
+    f = {}
+    if request.args.get("repetir") and ultimo:
+        f = {"paroquia": ultimo.paroquia_id, "responsavel": ultimo.responsavel,
+             "whatsapp": ultimo.whatsapp, "email": ultimo.email,
+             **{f"q_{i.produto_id}": i.qtd for i in ultimo.itens}}
+        flash("Preenchemos com os dados do seu último pedido. Confira e envie.", "ok")
+    return render_template("pedido.html", pars=pars, kits=catalogo(), modelos=sd.MODELOS, f=f,
+                           ped=None, ultimo=ultimo, hist_json=hist_json(pars))
 
 
 def pedido_do_dono(prot):
