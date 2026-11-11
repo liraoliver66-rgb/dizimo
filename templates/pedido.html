@@ -2,6 +2,16 @@
 <h1>{{ 'Editar pedido ' ~ ped.protocolo if ped else 'Fazer pedido' }}</h1>
 <p class="mut">Escolha a paróquia, informe o responsável e marque as quantidades. O total é calculado automaticamente.</p>
 
+{% if ultimo and not ped %}
+<div class="card" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <div>
+    <strong>Já fez um pedido antes?</strong><br>
+    <span class="mut">Último: {{ ultimo.paroquia.nome }} · {{ ultimo.protocolo }} · {{ ultimo.total|brl }}</span>
+  </div>
+  <a class="btn sec" style="margin-left:auto" href="{{ url_for('pedido', repetir=1) }}">Repetir último pedido</a>
+</div>
+{% endif %}
+
 <form method="post" id="form-pedido" autocomplete="off">
   <input type="hidden" name="csrf" value="{{ csrf }}">
 
